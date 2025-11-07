@@ -33,9 +33,9 @@ const RootLayout = ({ children }) => {
                             label: 'Статик текст',
                         },
                         {
-                            key: '/dashboard/order',
+                            key: '/dashboard/hotel',
                             icon: <OrderedListOutlined />,
-                            label: 'Захиалга',
+                            label: 'Буудал',
                         },
                         {
                             key: '/dashboard/room',
