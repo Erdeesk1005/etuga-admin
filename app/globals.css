@@ -19,8 +19,9 @@
     }
 }
 html,
-body {
-    height: auto;
+body,
+.ant-layout {
+    min-height: 100vh; /* Дэлгэцийн өндрөөс бага биш */
 }
 .ant-input-number {
     width: 100%;
