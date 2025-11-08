@@ -1,1 +1,1 @@
-export const BASE_URL = process.env.NEXT_PUBLIC_APP_API_ENDPOINT;
+export const BASE_URL = 'http://103.50.205.185:3000/api/v1/';
