@@ -1,20 +1,23 @@
 'use client';
+// react
 import React, { useEffect, useContext, useState } from 'react';
+// next
+import { useRouter } from 'next/navigation';
+// antd
 import { Space, Table, Tag, Button, Popconfirm, message, Spin } from 'antd';
 import { Typography } from 'antd';
+// context
 import { AuthContext } from '@/context/auth/authContext';
-import Add from './add';
 
 const { Title } = Typography;
 
 const Page = () => {
+    const router = useRouter();
     const {
         authFunc: { GET, DELETE },
     } = useContext(AuthContext);
     const [data, setData] = useState(null);
-    const [show, setShow] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [selected, setSelected] = useState(null);
     const [messageApi, contextHolder] = message.useMessage();
     useEffect(() => {
         getList();
@@ -78,9 +81,7 @@ const Page = () => {
             key: 'action',
             render: (_, record) => (
                 <Space size="middle">
-                    <Button info onClick={() => onDetail(record.id)}>
-                        Засах
-                    </Button>
+                    <Button onClick={() => router.push(`/dashboard/hotel/actions?id=${record.id}`)}>Засах</Button>
                     <Popconfirm
                         title="Буудал устгах"
                         description="Та устгахдаа итгэлтэй байна уу?"
@@ -95,21 +96,7 @@ const Page = () => {
             ),
         },
     ];
-    const onDetail = async (id) => {
-        if (loading) return;
-        setLoading(true);
-        let res = await GET(`admin/hotels/${id}`);
-        if (res?.status === 200) {
-            setSelected(res.data);
-            setShow(true);
-        } else {
-            messageApi.open({
-                type: 'error',
-                content: 'Амжилтгүй',
-            });
-        }
-        setLoading(false);
-    };
+
     const onDelete = async (id) => {
         if (loading) return;
         setLoading(true);
@@ -128,24 +115,20 @@ const Page = () => {
             });
         }
     };
-    const onClose = () => {
-        setShow(false);
-        setSelected(null);
-    };
+
     return (
         <>
             {contextHolder}
             <div>
                 <div className={'my-[40px] flex justify-between items-center'}>
                     <Title level={4}>Буудлын жагсаалт</Title>
-                    <Button type={'primary'} onClick={() => setShow(true)}>
+                    <Button type={'primary'} onClick={() => router.push('/dashboard/hotel/actions')}>
                         Нэмэх
                     </Button>
                 </div>
                 <Spin spinning={loading}>
                     <Table columns={columns} dataSource={data} />
                 </Spin>
-                {show && <Add onClose={onClose} getRefresh={getList} selected={selected} />}
             </div>
         </>
     );

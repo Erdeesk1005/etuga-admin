@@ -18,8 +18,10 @@
         --foreground: #ededed;
     }
 }
-
 html,
 body {
-    height: 100%;
+    height: auto;
+}
+.ant-input-number {
+    width: 100%;
 }
