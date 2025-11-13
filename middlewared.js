@@ -26,5 +26,6 @@ export function middleware(req) {
 
 // Зөвхөн /dashboard/** замд энэ middleware ажиллана
 export const config = {
-    matcher: ['/dashboard/:path*', '/login'],
+    // matcher: ['/dashboard/:path*', '/login'],
+    // matcher: ['/login'],
 };

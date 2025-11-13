@@ -24,9 +24,7 @@ export const Api = () => {
         if (result) {
             dispatch({ type: 'SIGN_IN', payload: result });
         } else {
-            removeCookie();
             handlers.logOut();
-            router.replace('/login');
         }
     }, []);
 
@@ -39,9 +37,9 @@ export const Api = () => {
 
             //хэрэглэгч гарах
             logOut: () => {
-                removeCookie();
-                dispatch({ type: 'SIGN_OUT' });
-                router.replace('/login');
+                // removeCookie();
+                // dispatch({ type: 'SIGN_OUT' });
+                // router.replace('/login');
             },
             stateDynamicUpdate: (obj) => {
                 //   payload = {
