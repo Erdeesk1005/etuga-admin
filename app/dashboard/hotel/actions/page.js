@@ -87,21 +87,50 @@ const Page = () => {
     if (res?.status === 200) {
       const cloned = JSON.parse(JSON.stringify(res.data));
 
-      // AMENITIES parse
-      if (typeof cloned?.AMENITIES === 'object') {
-        if (Object.keys(cloned?.AMENITIES || {})?.length === 0) {
-          cloned.AMENITIES = [];
-        }
-      } else if (cloned?.AMENITIES?.length > 0) {
-        const parsed = JSON.parse(cloned.AMENITIES);
-        const arr = [];
-        parsed.forEach((el) => {
-          for (const [key, value] of Object.entries(el)) {
-            arr.push({ title: key, mn: value.mn, en: value.en });
-          }
-        });
-        cloned.AMENITIES = arr;
-      }
+     // -----------------------------
+// AMENITIES parse (JS хувилбар, аюулгүй)
+// -----------------------------
+if (!cloned?.AMENITIES) {
+  // null, undefined, "" гэх мэт үед
+  cloned.AMENITIES = [];
+} else if (Array.isArray(cloned.AMENITIES)) {
+  // Аль хэдийн массив байвал
+  const first = cloned.AMENITIES[0];
+
+  if (first && first.title !== undefined) {
+    // [{ title, mn, en }] хэлбэртэй байвал шууд ашиглана
+    // cloned.AMENITIES = cloned.AMENITIES;
+  } else {
+    // [{ wifi: { mn, en } }] → [{ title: 'wifi', mn, en }]
+    const arr = [];
+    cloned.AMENITIES.forEach((el) => {
+      Object.entries(el).forEach(([key, value]) => {
+        arr.push({ title: key, mn: value.mn, en: value.en });
+      });
+    });
+    cloned.AMENITIES = arr;
+  }
+} else if (typeof cloned.AMENITIES === 'string') {
+  let parsed = [];
+
+  try {
+    parsed = JSON.parse(cloned.AMENITIES);
+  } catch (e) {
+    // ❌ JSON биш бол зүгээр л хоосон болгочихъё
+    // Энэ буруу форматтай AMENITIES-үүдийг хэрэглэгч дахин хадгалах үед чинь
+    // чиний шинэ onFinish нь аль хэдийн зөв JSON болгож хадгална.
+    cloned.AMENITIES = [];
+    return;
+  }
+
+  const arr = [];
+  parsed.forEach((el) => {
+    Object.entries(el).forEach(([key, value]) => {
+      arr.push({ title: key, mn: value.mn, en: value.en });
+    });
+  });
+  cloned.AMENITIES = arr;
+}
 
       // floors -> rooms
       if (cloned?.floors?.length > 0) {
@@ -458,45 +487,48 @@ const Page = () => {
             <Form.List name="AMENITIES">
               {(fields, { add, remove }, { errors }) => (
                 <>
-                  {fields.map((field, index) => (
-                    <Form.Item
-                      label={index === 0 ? 'Таатай байдал' : ''}
-                      required={false}
-                      key={uuidv4()}
-                    >
-                      <div className="flex justify-between items-center gap-x-[20px] bg-[#dfe6e9] rounded-[12px] shadow-2xl p-[20px]">
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'title']}
-                          rules={[{ required: true, message: '' }]}
-                          noStyle
-                        >
-                          <Input placeholder="Таатай байдал гарчиг" />
-                        </Form.Item>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'mn']}
-                          rules={[{ required: true, message: '' }]}
-                          noStyle
-                        >
-                          <Input placeholder="MN" />
-                        </Form.Item>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, 'en']}
-                          rules={[{ required: true, message: '' }]}
-                          noStyle
-                        >
-                          <Input placeholder="EN" />
-                        </Form.Item>
+                  {fields.map((field, index) => {
+                    const { key, name, ...restField } = field;
+                    return (
+                      <Form.Item
+                        label={index === 0 ? 'Таатай байдал' : ''}
+                        required={false}
+                        key={key}
+                      >
+                        <div className="flex justify-between items-center gap-x-[20px] bg-[#dfe6e9] rounded-[12px] shadow-2xl p-[20px]">
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'title']}
+                            rules={[{ required: true, message: '' }]}
+                            noStyle
+                          >
+                            <Input placeholder="Таатай байдал гарчиг" />
+                          </Form.Item>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'mn']}
+                            rules={[{ required: true, message: '' }]}
+                            noStyle
+                          >
+                            <Input placeholder="MN" />
+                          </Form.Item>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'en']}
+                            rules={[{ required: true, message: '' }]}
+                            noStyle
+                          >
+                            <Input placeholder="EN" />
+                          </Form.Item>
 
-                        <MinusCircleOutlined
-                          className="dynamic-delete-button"
-                          onClick={() => remove(field.name)}
-                        />
-                      </div>
-                    </Form.Item>
-                  ))}
+                          <MinusCircleOutlined
+                            className="dynamic-delete-button"
+                            onClick={() => remove(name)}
+                          />
+                        </div>
+                      </Form.Item>
+                    );
+                  })}
                   <Form.Item>
                     <Button
                       type="primary"
@@ -516,196 +548,198 @@ const Page = () => {
             <Form.List name="rooms">
               {(fields, { add, remove }, { errors }) => (
                 <>
-                  {fields.map((field) => (
-                    <Form.Item label="" required={false} key={uuidv4()}>
-                      <div className="bg-[#dfe6e9] rounded-[12px] shadow-2xl p-[20px]">
-                        {/* Гарчиг */}
-                        <div className="flex justify-between items-center gap-x-[20px] ">
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'title', 'mn']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Өрөөний гарчиг MN"
-                            className="w-full"
-                          >
-                            <Input placeholder="MN" />
-                          </Form.Item>
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'title', 'en']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Өрөөний гарчиг EN"
-                            className="w-full"
-                          >
-                            <Input placeholder="EN" />
-                          </Form.Item>
-                        </div>
+                  {fields.map((field) => {
+                    const { key, name, ...restField } = field;
 
-                        {/* Тоон үзүүлэлт */}
-                        <div className="grid grid-cols-4 gap-x-[20px] my-[20px]">
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'floor']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Давхарын тоо"
-                            className="w-full"
-                          >
-                            <InputNumber
-                              placeholder="Давхар"
+                    return (
+                      <Form.Item label="" required={false} key={key}>
+                        <div className="bg-[#dfe6e9] rounded-[12px] shadow-2xl p-[20px]">
+                          {/* Гарчиг */}
+                          <div className="flex justify-between items-center gap-x-[20px] ">
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'title', 'mn']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Өрөөний гарчиг MN"
                               className="w-full"
-                            />
-                          </Form.Item>
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'capacity']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Багтаамж хүний тоо"
-                            className="w-full"
-                          >
-                            <InputNumber
-                              placeholder="Багтаамж хүний тоо"
+                            >
+                              <Input placeholder="MN" />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'title', 'en']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Өрөөний гарчиг EN"
                               className="w-full"
-                            />
-                          </Form.Item>
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'beds']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Нийт орны тоо"
-                            className="w-full"
-                          >
-                            <InputNumber
-                              placeholder="Нийт ор"
-                              className="w-full"
-                            />
-                          </Form.Item>
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'areaM2']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Нийт хэмжээ мк"
-                            className="w-full"
-                          >
-                            <InputNumber
-                              placeholder="Нийт хэмжээ"
-                              className="w-full"
-                            />
-                          </Form.Item>
-                        </div>
+                            >
+                              <Input placeholder="EN" />
+                            </Form.Item>
+                          </div>
 
-                        {/* Үнэ */}
-                        <div className="flex justify-between items-center gap-x-[20px] my-[20px]">
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'pricePerNightMNT']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Нэг хоногийн төлбөр"
-                            className="w-full"
-                          >
-                            <InputNumber
-                              placeholder="Нэг хоногийн төлбөр"
+                          {/* Тоон үзүүлэлт */}
+                          <div className="grid grid-cols-4 gap-x-[20px] my-[20px]">
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'floor']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Давхарын тоо"
                               className="w-full"
-                            />
-                          </Form.Item>
-                        </div>
+                            >
+                              <InputNumber placeholder="Давхар" className="w-full" />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'capacity']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Багтаамж хүний тоо"
+                              className="w-full"
+                            >
+                              <InputNumber
+                                placeholder="Багтаамж хүний тоо"
+                                className="w-full"
+                              />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'beds']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Нийт орны тоо"
+                              className="w-full"
+                            >
+                              <InputNumber placeholder="Нийт ор" className="w-full" />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'areaM2']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Нийт хэмжээ мк"
+                              className="w-full"
+                            >
+                              <InputNumber
+                                placeholder="Нийт хэмжээ"
+                                className="w-full"
+                              />
+                            </Form.Item>
+                          </div>
 
-                        {/* Хөнгөлөлт */}
-                        <Form.List name={[field.name, 'discounts']}>
-                          {(discountFields, { add: addDiscount, remove: removeDiscount }) => (
-                            <>
-                              <div className="mb-[10px] font-semibold">
-                                Хөнгөлөлтийн мэдээлэл
-                              </div>
-                              {discountFields.map((dField) => (
-                                <div
-                                  key={uuidv4()}
-                                  className="flex items-end gap-x-[12px] mb-[10px]"
-                                >
-                                  <Form.Item
-                                    {...dField}
-                                    name={[dField.name, 'nights']}
-                                    label="Хоног"
-                                    className="w-full"
-                                    rules={[
-                                      {
-                                        required: true,
-                                        message: 'Хоногийн тоо оруулна уу',
-                                      },
-                                    ]}
-                                  >
-                                    <InputNumber
-                                      placeholder="Хоногийн тоо"
-                                      className="w-full"
-                                    />
-                                  </Form.Item>
+                          {/* Үнэ */}
+                          <div className="flex justify-between items-center gap-x-[20px] my-[20px]">
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'pricePerNightMNT']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Нэг хоногийн төлбөр"
+                              className="w-full"
+                            >
+                              <InputNumber
+                                placeholder="Нэг хоногийн төлбөр"
+                                className="w-full"
+                              />
+                            </Form.Item>
+                          </div>
 
-                                  <Form.Item
-                                    {...dField}
-                                    name={[dField.name, 'percent']}
-                                    label="Хөнгөлөлт %"
-                                    className="w-full"
-                                    rules={[
-                                      {
-                                        required: true,
-                                        message: 'Хөнгөлөлтийн хувь оруулна уу',
-                                      },
-                                    ]}
-                                  >
-                                    <InputNumber
-                                      placeholder="Хөнгөлөлтийн хувь"
-                                      className="w-full"
-                                    />
-                                  </Form.Item>
-
-                                  <MinusCircleOutlined
-                                    className="cursor-pointer mb-[8px]"
-                                    onClick={() => removeDiscount(dField.name)}
-                                  />
+                          {/* Хөнгөлөлт */}
+                          <Form.List name={[name, 'discounts']}>
+                            {(discountFields, { add: addDiscount, remove: removeDiscount }) => (
+                              <>
+                                <div className="mb-[10px] font-semibold">
+                                  Хөнгөлөлтийн мэдээлэл
                                 </div>
-                              ))}
+                                {discountFields.map((dField) => {
+                                  const { key: dKey, name: dName, ...restDiscountField } = dField;
 
-                              <Form.Item>
-                                <Button
-                                  type="dashed"
-                                  onClick={() => addDiscount()}
-                                  icon={<PlusOutlined />}
-                                >
-                                  Хөнгөлөлт нэмэх
-                                </Button>
-                              </Form.Item>
-                            </>
-                          )}
-                        </Form.List>
+                                  return (
+                                    <div
+                                      key={dKey}
+                                      className="flex items-end gap-x-[12px] mb-[10px]"
+                                    >
+                                      <Form.Item
+                                        {...restDiscountField}
+                                        name={[dName, 'nights']}
+                                        label="Хоног"
+                                        className="w-full"
+                                        rules={[
+                                          {
+                                            required: true,
+                                            message: 'Хоногийн тоо оруулна уу',
+                                          },
+                                        ]}
+                                      >
+                                        <InputNumber
+                                          placeholder="Хоногийн тоо"
+                                          className="w-full"
+                                        />
+                                      </Form.Item>
 
-                        {/* Товч танилцуулга */}
-                        <div className="flex justify-between items-center gap-x-[20px] mt-[10px]">
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'blurb', 'mn']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Товч танилцуулга MN"
-                            className="w-full"
-                          >
-                            <Input placeholder="Товч танилцуулга MN" />
-                          </Form.Item>
-                          <Form.Item
-                            {...field}
-                            name={[field.name, 'blurb', 'en']}
-                            rules={[{ required: true, message: '' }]}
-                            label="Товч танилцуулга EN"
-                            className="w-full"
-                          >
-                            <Input placeholder="Товч танилцуулга EN" />
-                          </Form.Item>
+                                      <Form.Item
+                                        {...restDiscountField}
+                                        name={[dName, 'percent']}
+                                        label="Хөнгөлөлт %"
+                                        className="w-full"
+                                        rules={[
+                                          {
+                                            required: true,
+                                            message: 'Хөнгөлөлтийн хувь оруулна уу',
+                                          },
+                                        ]}
+                                      >
+                                        <InputNumber
+                                          placeholder="Хөнгөлөлтийн хувь"
+                                          className="w-full"
+                                        />
+                                      </Form.Item>
 
-                          <MinusCircleOutlined
-                            className="dynamic-delete-button mb-[8px]"
-                            onClick={() => remove(field.name)}
-                          />
+                                      <MinusCircleOutlined
+                                        className="cursor-pointer mb-[8px]"
+                                        onClick={() => removeDiscount(dName)}
+                                      />
+                                    </div>
+                                  );
+                                })}
+
+                                <Form.Item>
+                                  <Button
+                                    type="dashed"
+                                    onClick={() => addDiscount()}
+                                    icon={<PlusOutlined />}
+                                  >
+                                    Хөнгөлөлт нэмэх
+                                  </Button>
+                                </Form.Item>
+                              </>
+                            )}
+                          </Form.List>
+
+                          {/* Товч танилцуулга */}
+                          <div className="flex justify-between items-center gap-x-[20px] mt-[10px]">
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'blurb', 'mn']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Товч танилцуулга MN"
+                              className="w-full"
+                            >
+                              <Input placeholder="Товч танилцуулга MN" />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'blurb', 'en']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Товч танилцуулга EN"
+                              className="w-full"
+                            >
+                              <Input placeholder="Товч танилцуулга EN" />
+                            </Form.Item>
+
+                            <MinusCircleOutlined
+                              className="dynamic-delete-button mb-[8px]"
+                              onClick={() => remove(name)}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </Form.Item>
-                  ))}
+                      </Form.Item>
+                    );
+                  })}
                   <Form.Item>
                     <Button
                       type="primary"
@@ -720,36 +754,51 @@ const Page = () => {
               )}
             </Form.List>
 
+
             {/* ───────── Зураг ───────── */}
             <Title level={5}>Зураг</Title>
-            <div>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleChange}
-              />
 
-              <div className="mt-[20px] flex flex-wrap gap-x-[20px] gap-y-[20px]">
+            <div className="space-y-4">
+              {/* File Input */}
+              <label className="block w-fit cursor-pointer">
+                <div className="bg-[#f7f7f7] hover:bg-[#efefef] transition-all border border-dashed rounded-xl px-6 py-3 text-sm">
+                  Зураг сонгох
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Image preview list */}
+              <div className="flex flex-wrap gap-5">
                 {files.map((el, index) => (
                   <div
-                    key={uuidv4()}
-                    className="shadow-2xl rounded-[12px] w-[250px] relative"
+                    key={el.id || el.localUrl || index} // уникал key
+                    className="relative w-[250px] rounded-xl overflow-hidden shadow hover:shadow-lg transition-all bg-white"
                   >
+                    {/* Image */}
                     <img
                       src={el.localUrl}
-                      className="w-[250px] h-[150px] object-cover rounded-[12px]"
+                      alt="uploaded"
+                      className="w-full h-[150px] object-cover"
                     />
-                    <div
-                      className="absolute top-[5px] right-[10px] bg-[#fff] rounded-[12px] py-[5px] px-[10px] text-[12px] cursor-pointer"
+
+                    {/* Delete button */}
+                    <button
                       onClick={() => onDeleteFile(index)}
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-red-500 hover:text-white transition-all text-xs px-3 py-1 rounded-full shadow"
                     >
                       Устгах
-                    </div>
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
+
 
             {/* ───────── SUBMIT ───────── */}
             <Form.Item>
