@@ -26,7 +26,7 @@ const Page = () => {
                     type: 'success',
                     content: 'Амжилттай',
                 });
-                router.replace('/dashboard');
+                router.replace('/dashboard/hotel');
             } else {
                 messageApi.open({
                     type: 'error',
