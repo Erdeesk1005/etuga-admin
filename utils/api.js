@@ -7,7 +7,7 @@ import AuthReducer from '@/context/auth/authReducer';
 // axios
 import axios from 'axios';
 // utils
-import { getcookie, removeCookie, setcookie } from '@/context/auth/utils';
+import { getcookie, setcookie } from '@/context/auth/utils';
 // third
 import { BASE_URL } from '@/utils/config';
 
