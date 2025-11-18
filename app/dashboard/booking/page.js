@@ -1,66 +1,66 @@
-'use client';
+"use client";
 
 // react
-import React, { useEffect, useContext, useState } from 'react';
-// next
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from "react";
 // antd
-import {
-  Table,
-  Typography,
-  Spin,
-  Tag,
-  message,
-} from 'antd';
-// context
-import { AuthContext } from '@/context/auth/authContext';
+import { Table, Typography, Spin, Tag, message } from "antd";
 
 const { Title } = Typography;
 
 // огноо форматлагч (ISO -> уншихад амар)
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('mn-MN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  return d.toLocaleDateString("mn-MN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 }
 
 // огноо + цаг форматлагч (created_at гэх мэтэд)
 function formatDateTime(value) {
-  if (!value) return '—';
+  if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString('mn-MN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return d.toLocaleString("mn-MN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 const statusColorMap = {
-  PENDING: 'gold',
-  CONFIRMED: 'green',
-  CANCELLED: 'volcano',
+  PENDING: "gold",
+  CONFIRMED: "green",
+  CANCELLED: "volcano",
 };
 
 const paymentStatusColorMap = {
-  UNPAID: 'red',
-  PAID: 'green',
-  REFUNDED: 'geekblue',
+  UNPAID: "red",
+  PAID: "green",
+  REFUNDED: "geekblue",
 };
 
-const Page = () => {
-  const router = useRouter();
-  const {
-    authFunc: { GET },
-  } = useContext(AuthContext);
+// жижиг туслах fetch wrapper – /api rewrite ашиглана
+async function apiGet(path) {
+  const res = await fetch(`/api/${path}`, {
+    // хэрвээ cookie-ээр auth хийж байгаа бол:
+    credentials: "include",
+  });
 
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+
+  // өмнө нь res.data гэж авч байсан -> одоо шууд body нь
+  return res.json();
+}
+
+const Page = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -73,18 +73,21 @@ const Page = () => {
   // bookings list авах
   const getList = async () => {
     setLoading(true);
-    const res = await GET('admin/bookings');
-
-    if (res?.data) {
-      setData(res.data);
-    } else {
+    try {
+      const json = await apiGet("admin/bookings");
+      // өмнө нь res?.data байсан -> axios response.data
+      // одоо fetch тул json нь жинхэнэ өгөгдөл
+      setData(Array.isArray(json) ? json : json.data || []);
+    } catch (err) {
+      console.error(err);
       setData([]);
       messageApi.open({
-        type: 'error',
-        content: 'Захиалга ачааллахад алдаа гарлаа',
+        type: "error",
+        content: "Захиалга ачааллахад алдаа гарлаа",
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -94,52 +97,54 @@ const Page = () => {
   // нэг booking-ийн дэлгэрэнгүй авах
   const fetchDetail = async (bookingId) => {
     setDetailLoadingId(bookingId);
-    const res = await GET(`admin/bookings/${bookingId}`);
-    if (res?.data) {
+    try {
+      const json = await apiGet(`admin/bookings/${bookingId}`);
       setDetails((prev) => ({
         ...prev,
-        [bookingId]: res.data,
+        [bookingId]: json, // өмнө нь res.data -> одоо json
       }));
-    } else {
+    } catch (err) {
+      console.error(err);
       messageApi.open({
-        type: 'error',
-        content: 'Дэлгэрэнгүй мэдээлэл ачааллахад алдаа гарлаа',
+        type: "error",
+        content: "Дэлгэрэнгүй мэдээлэл ачааллахад алдаа гарлаа",
       });
+    } finally {
+      setDetailLoadingId(null);
     }
-    setDetailLoadingId(null);
   };
 
   const columns = [
     {
-      title: 'Захиалгын дугаар',
-      dataIndex: 'public_ref',
-      key: 'public_ref',
+      title: "Захиалгын дугаар",
+      dataIndex: "public_ref",
+      key: "public_ref",
       render: (text) => <span className="font-semibold">{text}</span>,
     },
     {
-      title: 'Буудал',
-      dataIndex: 'name_mn',
-      key: 'name_mn',
+      title: "Буудал",
+      dataIndex: "name_mn",
+      key: "name_mn",
       render: (text, record) => (
         <span>{text || record.name_en || record.hotel_id}</span>
       ),
     },
     {
-      title: 'Check-in',
-      dataIndex: 'check_in',
-      key: 'check_in',
+      title: "Check-in",
+      dataIndex: "check_in",
+      key: "check_in",
       render: (value) => formatDate(value),
     },
     {
-      title: 'Check-out',
-      dataIndex: 'check_out',
-      key: 'check_out',
+      title: "Check-out",
+      dataIndex: "check_out",
+      key: "check_out",
       render: (value) => formatDate(value),
     },
     {
-      title: 'Зочин',
-      dataIndex: 'contact_name',
-      key: 'contact_name',
+      title: "Зочин",
+      dataIndex: "contact_name",
+      key: "contact_name",
       render: (text, record) => (
         <div>
           <div>{text}</div>
@@ -150,44 +155,38 @@ const Page = () => {
       ),
     },
     {
-      title: 'Хүн',
-      dataIndex: 'guests',
-      key: 'guests',
+      title: "Хүн",
+      dataIndex: "guests",
+      key: "guests",
       width: 80,
       render: (value) => <span>{value}</span>,
     },
     {
-      title: 'Нийт төлбөр',
-      dataIndex: 'total_amount',
-      key: 'total_amount',
+      title: "Нийт төлбөр",
+      dataIndex: "total_amount",
+      key: "total_amount",
+      render: (value) => <span>{value?.toLocaleString("mn-MN")} ₮</span>,
+    },
+    {
+      title: "Төлөв",
+      dataIndex: "status",
+      key: "status",
       render: (value) => (
-        <span>{value?.toLocaleString('mn-MN')} ₮</span>
+        <Tag color={statusColorMap[value] || "default"}>{value}</Tag>
       ),
     },
     {
-      title: 'Төлөв',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Төлбөрийн төлөв",
+      dataIndex: "payment_status",
+      key: "payment_status",
       render: (value) => (
-        <Tag color={statusColorMap[value] || 'default'}>
-          {value}
-        </Tag>
+        <Tag color={paymentStatusColorMap[value] || "default"}>{value}</Tag>
       ),
     },
     {
-      title: 'Төлбөрийн төлөв',
-      dataIndex: 'payment_status',
-      key: 'payment_status',
-      render: (value) => (
-        <Tag color={paymentStatusColorMap[value] || 'default'}>
-          {value}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Үүсгэсэн',
-      dataIndex: 'created_at',
-      key: 'created_at',
+      title: "Үүсгэсэн",
+      dataIndex: "created_at",
+      key: "created_at",
       render: (value) => formatDateTime(value),
     },
   ];
@@ -213,41 +212,41 @@ const Page = () => {
     // rooms жижиг хүснэгт
     const roomColumns = [
       {
-        title: 'Room ID',
-        dataIndex: 'room_id',
-        key: 'room_id',
+        title: "Room ID",
+        dataIndex: "room_id",
+        key: "room_id",
       },
       {
-        title: 'Гарчиг (MN)',
-        dataIndex: 'title_mn',
-        key: 'title_mn',
+        title: "Гарчиг (MN)",
+        dataIndex: "title_mn",
+        key: "title_mn",
       },
       {
-        title: 'Гарчиг (EN)',
-        dataIndex: 'title_en',
-        key: 'title_en',
+        title: "Гарчиг (EN)",
+        dataIndex: "title_en",
+        key: "title_en",
       },
       {
-        title: 'Шөнө',
-        dataIndex: 'nights',
-        key: 'nights',
+        title: "Шөнө",
+        dataIndex: "nights",
+        key: "nights",
       },
       {
-        title: 'Хүн',
-        dataIndex: 'guests',
-        key: 'guests',
+        title: "Хүн",
+        dataIndex: "guests",
+        key: "guests",
       },
       {
-        title: 'Үнэ / шөнө',
-        dataIndex: 'pricePerNightMNT',
-        key: 'pricePerNightMNT',
-        render: (v) => `${v?.toLocaleString('mn-MN')} ₮`,
+        title: "Үнэ / шөнө",
+        dataIndex: "pricePerNightMNT",
+        key: "pricePerNightMNT",
+        render: (v) => `${v?.toLocaleString("mn-MN")} ₮`,
       },
       {
-        title: 'Дүн',
-        key: 'subtotal',
+        title: "Дүн",
+        key: "subtotal",
         render: (_, r) =>
-          `${(r.pricePerNightMNT * r.nights).toLocaleString('mn-MN')} ₮`,
+          `${(r.pricePerNightMNT * r.nights).toLocaleString("mn-MN")} ₮`,
       },
     ];
 
@@ -280,11 +279,11 @@ const Page = () => {
               </div>
               <div>
                 <span className="font-medium">Нийт төлбөр: </span>
-                {detail.total_amount?.toLocaleString('mn-MN')} ₮
+                {detail.total_amount?.toLocaleString("mn-MN")} ₮
               </div>
               <div>
                 <span className="font-medium">Төлөв: </span>
-                <Tag color={statusColorMap[detail.status] || 'default'}>
+                <Tag color={statusColorMap[detail.status] || "default"}>
                   {detail.status}
                 </Tag>
               </div>
@@ -292,8 +291,7 @@ const Page = () => {
                 <span className="font-medium">Төлбөрийн төлөв: </span>
                 <Tag
                   color={
-                    paymentStatusColorMap[detail.payment_status] ||
-                    'default'
+                    paymentStatusColorMap[detail.payment_status] || "default"
                   }
                 >
                   {detail.payment_status}
@@ -365,9 +363,7 @@ const Page = () => {
                 if (expanded) {
                   // expand хийгдэж байвал дэлгэрэнгүйг дуудаж cache хийх
                   setExpandedRowKeys((prev) =>
-                    prev.includes(record.id)
-                      ? prev
-                      : [...prev, record.id]
+                    prev.includes(record.id) ? prev : [...prev, record.id]
                   );
                   if (!details[record.id]) {
                     await fetchDetail(record.id);

@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    async rewrites() {
-        return [
-            {
-                source: '/api/:path',
-                destination: 'http://103.50.205.185:3000/api/v1/:path*', // дотоод HTTP
-            },
-        ];
-    },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "https://api.etuga.mn/api/v1/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

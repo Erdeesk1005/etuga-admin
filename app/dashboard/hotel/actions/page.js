@@ -1,6 +1,6 @@
 'use client';
 // react
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 // next
 import { useRouter, useSearchParams } from 'next/navigation';
 // antd
@@ -15,25 +15,64 @@ import {
   Select,
 } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-// context
-import { AuthContext } from '@/context/auth/authContext';
-// utils
-import { v4 as uuidv4 } from 'uuid';
-// third
+// third / utils
 import { FILE_URL } from '@/utils/config';
 
 const { TextArea } = Input;
 const { Title } = Typography;
 const { Option } = Select;
 
+// --- API helper-ууд (/api → api.etuga.mn рүү rewrite хийгдэнэ) ---
+async function apiGet(path) {
+  const res = await fetch(`/api/${path}`, {
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => null);
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    data,
+  };
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(`/api/${path}`, {
+    method: 'POST',
+    body,
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => null);
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    data,
+  };
+}
+
+async function apiPut(path, body) {
+  const res = await fetch(`/api/${path}`, {
+    method: 'PUT',
+    body,
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => null);
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    data,
+  };
+}
+
 const Page = () => {
   const searchParams = useSearchParams();
   const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
-
-  const {
-    authFunc: { POST, PUT, GET },
-  } = useContext(AuthContext);
 
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -53,7 +92,6 @@ const Page = () => {
       setMapSrc('');
       return;
     }
-    // бага зэргийн bbox авч embed хийе
     const dLat = 0.02;
     const dLng = 0.02;
     const minLng = lng - dLng;
@@ -82,57 +120,52 @@ const Page = () => {
     if (loading) return;
     setLoading(true);
 
-    const res = await GET(`admin/hotels/${id}`);
+    const res = await apiGet(`admin/hotels/${id}`);
 
-    if (res?.status === 200) {
+    if (res.status === 200 && res.data) {
       const cloned = JSON.parse(JSON.stringify(res.data));
 
-     // -----------------------------
-// AMENITIES parse (JS хувилбар, аюулгүй)
-// -----------------------------
-if (!cloned?.AMENITIES) {
-  // null, undefined, "" гэх мэт үед
-  cloned.AMENITIES = [];
-} else if (Array.isArray(cloned.AMENITIES)) {
-  // Аль хэдийн массив байвал
-  const first = cloned.AMENITIES[0];
+      // -----------------------------
+      // AMENITIES parse (аюулгүй JS хувилбар)
+      // -----------------------------
+      if (!cloned?.AMENITIES) {
+        cloned.AMENITIES = [];
+      } else if (Array.isArray(cloned.AMENITIES)) {
+        const first = cloned.AMENITIES[0];
 
-  if (first && first.title !== undefined) {
-    // [{ title, mn, en }] хэлбэртэй байвал шууд ашиглана
-    // cloned.AMENITIES = cloned.AMENITIES;
-  } else {
-    // [{ wifi: { mn, en } }] → [{ title: 'wifi', mn, en }]
-    const arr = [];
-    cloned.AMENITIES.forEach((el) => {
-      Object.entries(el).forEach(([key, value]) => {
-        arr.push({ title: key, mn: value.mn, en: value.en });
-      });
-    });
-    cloned.AMENITIES = arr;
-  }
-} else if (typeof cloned.AMENITIES === 'string') {
-  let parsed = [];
+        if (first && first.title !== undefined) {
+          // [{ title, mn, en }] хэлбэртэй байвал шууд хэрэглэнэ
+        } else {
+          // [{ wifi: { mn, en } }] → [{ title: 'wifi', mn, en }]
+          const arr = [];
+          cloned.AMENITIES.forEach((el) => {
+            Object.entries(el).forEach(([key, value]) => {
+              arr.push({ title: key, mn: value.mn, en: value.en });
+            });
+          });
+          cloned.AMENITIES = arr;
+        }
+      } else if (typeof cloned.AMENITIES === 'string') {
+        let parsed = [];
 
-  try {
-    parsed = JSON.parse(cloned.AMENITIES);
-  } catch (e) {
-    // ❌ JSON биш бол зүгээр л хоосон болгочихъё
-    // Энэ буруу форматтай AMENITIES-үүдийг хэрэглэгч дахин хадгалах үед чинь
-    // чиний шинэ onFinish нь аль хэдийн зөв JSON болгож хадгална.
-    cloned.AMENITIES = [];
-    return;
-  }
+        try {
+          parsed = JSON.parse(cloned.AMENITIES);
+        } catch (e) {
+          cloned.AMENITIES = [];
+        }
 
-  const arr = [];
-  parsed.forEach((el) => {
-    Object.entries(el).forEach(([key, value]) => {
-      arr.push({ title: key, mn: value.mn, en: value.en });
-    });
-  });
-  cloned.AMENITIES = arr;
-}
+        if (Array.isArray(parsed)) {
+          const arr = [];
+          parsed.forEach((el) => {
+            Object.entries(el).forEach(([key, value]) => {
+              arr.push({ title: key, mn: value.mn, en: value.en });
+            });
+          });
+          cloned.AMENITIES = arr;
+        }
+      }
 
-      // floors -> rooms
+      // floors -> rooms (backend structure-аа дагана, хэрэггүй бол авч хаяж болно)
       if (cloned?.floors?.length > 0) {
         cloned.rooms = cloned.floors;
       }
@@ -195,15 +228,15 @@ if (!cloned?.AMENITIES) {
       files.forEach((el) => {
         // server-ээс ирсэн хуучин зураг File биш -> name байхгүй
         if (el.name) {
-          formData.append('files', el); // backend талд "files" key
+          formData.append('files', el);
         }
       });
     }
 
     if (id) {
-      res = await PUT(`admin/hotels/${id}`, formData, 'multipart/form-data');
+      res = await apiPut(`admin/hotels/${id}`, formData);
     } else {
-      res = await POST('admin/hotels', formData, 'multipart/form-data');
+      res = await apiPost('admin/hotels', formData);
     }
 
     if (res?.status === 201 || res?.status === 200) {
@@ -235,7 +268,6 @@ if (!cloned?.AMENITIES) {
 
     setFiles((prev) => [...prev, ...mapped]);
 
-    // ижил файлыг дахин сонгох боломжтой болгох
     e.target.value = '';
   };
 
@@ -271,7 +303,6 @@ if (!cloned?.AMENITIES) {
                 name="type"
                 rules={[{ required: true, message: 'Төрөл оруулна уу!' }]}
               >
-                {/* backend рүү guesthouse / apartment гэж явна */}
                 <Select placeholder="Төрөл сонгох">
                   <Option value="guesthouse">Guest House</Option>
                   <Option value="apartment">Apartment</Option>
@@ -314,7 +345,9 @@ if (!cloned?.AMENITIES) {
               <Form.Item
                 label="Өрөөний тоо"
                 name="bedrooms"
-                rules={[{ required: true, message: 'Өрөөний тоо оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Өрөөний тоо оруулна уу!' },
+                ]}
               >
                 <InputNumber placeholder="Өрөөний тоо" className="w-full" />
               </Form.Item>
@@ -335,7 +368,9 @@ if (!cloned?.AMENITIES) {
               <Form.Item
                 label="Үнэлгээ"
                 name="rating"
-                rules={[{ required: true, message: 'Үнэлгээ оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Үнэлгээ оруулна уу!' },
+                ]}
               >
                 <InputNumber placeholder="Үнэлгээ" className="w-full" />
               </Form.Item>
@@ -361,7 +396,9 @@ if (!cloned?.AMENITIES) {
               <Form.Item
                 label="Вэбсайт"
                 name="website"
-                rules={[{ required: true, message: 'Вэбсайт оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Вэбсайт оруулна уу!' },
+                ]}
               >
                 <Input placeholder="Вэбсайт" />
               </Form.Item>
@@ -372,14 +409,18 @@ if (!cloned?.AMENITIES) {
               <Form.Item
                 label="Тайлбар (MN)"
                 name="description_mn"
-                rules={[{ required: true, message: 'Тайлбар оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Тайлбар оруулна уу!' },
+                ]}
               >
                 <TextArea rows={4} placeholder="Тайлбар (MN)" />
               </Form.Item>
               <Form.Item
                 label="Тайлбар (EN)"
                 name="description_en"
-                rules={[{ required: true, message: 'Тайлбар оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Тайлбар оруулна уу!' },
+                ]}
               >
                 <TextArea rows={4} placeholder="Тайлбар (EN)" />
               </Form.Item>
@@ -391,14 +432,18 @@ if (!cloned?.AMENITIES) {
               <Form.Item
                 label="Байршил (MN)"
                 name="city_name"
-                rules={[{ required: true, message: 'Байршил оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Байршил оруулна уу!' },
+                ]}
               >
                 <Input placeholder="Улаанбаатар, Төв аймаг гэх мэт" />
               </Form.Item>
               <Form.Item
                 label="Байршил (EN)"
                 name="city_name_en"
-                rules={[{ required: true, message: 'Байршил оруулна уу!' }]}
+                rules={[
+                  { required: true, message: 'Байршил оруулна уу!' },
+                ]}
               >
                 <Input placeholder="Ulaanbaatar, Tuv aimag etc." />
               </Form.Item>
@@ -406,7 +451,10 @@ if (!cloned?.AMENITIES) {
                 label="Дэлгэрэнгүй хаяг (MN)"
                 name="address_line1"
                 rules={[
-                  { required: true, message: 'Дэлгэрэнгүй хаяг оруулна уу!' },
+                  {
+                    required: true,
+                    message: 'Дэлгэрэнгүй хаяг оруулна уу!',
+                  },
                 ]}
               >
                 <Input placeholder="СБД, 1-р хороо гэх мэт" />
@@ -415,7 +463,10 @@ if (!cloned?.AMENITIES) {
                 label="Дэлгэрэнгүй хаяг (EN)"
                 name="address_line1_en"
                 rules={[
-                  { required: true, message: 'Дэлгэрэнгүй хаяг оруулна уу!' },
+                  {
+                    required: true,
+                    message: 'Дэлгэрэнгүй хаяг оруулна уу!',
+                  },
                 ]}
               >
                 <Input placeholder="Sukhbaatar district etc." />
@@ -585,7 +636,10 @@ if (!cloned?.AMENITIES) {
                               label="Давхарын тоо"
                               className="w-full"
                             >
-                              <InputNumber placeholder="Давхар" className="w-full" />
+                              <InputNumber
+                                placeholder="Давхар"
+                                className="w-full"
+                              />
                             </Form.Item>
                             <Form.Item
                               {...restField}
@@ -606,7 +660,10 @@ if (!cloned?.AMENITIES) {
                               label="Нийт орны тоо"
                               className="w-full"
                             >
-                              <InputNumber placeholder="Нийт ор" className="w-full" />
+                              <InputNumber
+                                placeholder="Нийт ор"
+                                className="w-full"
+                              />
                             </Form.Item>
                             <Form.Item
                               {...restField}
@@ -679,7 +736,8 @@ if (!cloned?.AMENITIES) {
                                         rules={[
                                           {
                                             required: true,
-                                            message: 'Хөнгөлөлтийн хувь оруулна уу',
+                                            message:
+                                              'Хөнгөлөлтийн хувь оруулна уу',
                                           },
                                         ]}
                                       >
@@ -754,7 +812,6 @@ if (!cloned?.AMENITIES) {
               )}
             </Form.List>
 
-
             {/* ───────── Зураг ───────── */}
             <Title level={5}>Зураг</Title>
 
@@ -777,17 +834,14 @@ if (!cloned?.AMENITIES) {
               <div className="flex flex-wrap gap-5">
                 {files.map((el, index) => (
                   <div
-                    key={el.id || el.localUrl || index} // уникал key
+                    key={el.id || el.localUrl || index}
                     className="relative w-[250px] rounded-xl overflow-hidden shadow hover:shadow-lg transition-all bg-white"
                   >
-                    {/* Image */}
                     <img
                       src={el.localUrl}
                       alt="uploaded"
                       className="w-full h-[150px] object-cover"
                     />
-
-                    {/* Delete button */}
                     <button
                       onClick={() => onDeleteFile(index)}
                       className="absolute top-2 right-2 bg-white/90 hover:bg-red-500 hover:text-white transition-all text-xs px-3 py-1 rounded-full shadow"
@@ -798,7 +852,6 @@ if (!cloned?.AMENITIES) {
                 ))}
               </div>
             </div>
-
 
             {/* ───────── SUBMIT ───────── */}
             <Form.Item>
