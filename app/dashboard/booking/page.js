@@ -3,9 +3,10 @@
 // react
 import React, { useEffect, useState } from "react";
 // antd
-import { Table, Typography, Spin, Tag, message } from "antd";
+import { Table, Typography, Spin, Tag, message, Select } from "antd";
 
 const { Title } = Typography;
+const { Option } = Select;
 
 // огноо форматлагч (ISO -> уншихад амар)
 function formatDate(value) {
@@ -39,16 +40,20 @@ const statusColorMap = {
   CANCELLED: "volcano",
 };
 
+// 🔹 Backend руу явуулах боломжтой төлбөрийн төлөвүүд
+const editablePaymentStatuses = ["PAID", "REFUNDED", "FAILED"];
+
+// UNPAID байж болохоор map-ийг өргөн үлдээе
 const paymentStatusColorMap = {
   UNPAID: "red",
   PAID: "green",
   REFUNDED: "geekblue",
+  FAILED: "volcano",
 };
 
-// жижиг туслах fetch wrapper – /api rewrite ашиглана
+// жижиг туслах fetch wrapper – /api rewrite ашиглана (GET-үүд)
 async function apiGet(path) {
   const res = await fetch(`/api/${path}`, {
-    // хэрвээ cookie-ээр auth хийж байгаа бол:
     credentials: "include",
   });
 
@@ -56,7 +61,24 @@ async function apiGet(path) {
     throw new Error(`API error: ${res.status}`);
   }
 
-  // өмнө нь res.data гэж авч байсан -> одоо шууд body нь
+  return res.json();
+}
+
+// 🔹 payment UPDATE – POST /api/admin/bookings/:id/payment
+async function apiPostPayment(bookingId, body) {
+  const res = await fetch(`/api/admin/bookings/${bookingId}/payment`, {
+    method: "POST", // 👈 ЧИНИЙ ХЭЛСНЭЭР POST-ООР
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
+  }
+
   return res.json();
 }
 
@@ -70,13 +92,13 @@ const Page = () => {
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const [detailLoadingId, setDetailLoadingId] = useState(null);
 
-  // bookings list авах
+  // яг одоо төлбөрийн төлөв update хийж байгаа id
+  const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
+
   const getList = async () => {
     setLoading(true);
     try {
       const json = await apiGet("admin/bookings");
-      // өмнө нь res?.data байсан -> axios response.data
-      // одоо fetch тул json нь жинхэнэ өгөгдөл
       setData(Array.isArray(json) ? json : json.data || []);
     } catch (err) {
       console.error(err);
@@ -94,14 +116,13 @@ const Page = () => {
     getList();
   }, []);
 
-  // нэг booking-ийн дэлгэрэнгүй авах
   const fetchDetail = async (bookingId) => {
     setDetailLoadingId(bookingId);
     try {
       const json = await apiGet(`admin/bookings/${bookingId}`);
       setDetails((prev) => ({
         ...prev,
-        [bookingId]: json, // өмнө нь res.data -> одоо json
+        [bookingId]: json,
       }));
     } catch (err) {
       console.error(err);
@@ -111,6 +132,39 @@ const Page = () => {
       });
     } finally {
       setDetailLoadingId(null);
+    }
+  };
+
+  const handlePaymentStatusChange = async (bookingId, newStatus) => {
+    setUpdatingPaymentId(bookingId);
+    try {
+      await apiPostPayment(bookingId, { payment_status: newStatus });
+
+      // list data шинэчлэх
+      setData((prev) =>
+        prev.map((row) =>
+          row.id === bookingId ? { ...row, payment_status: newStatus } : row
+        )
+      );
+
+      // details cache шинэчлэх
+      setDetails((prev) => {
+        if (!prev[bookingId]) return prev;
+        return {
+          ...prev,
+          [bookingId]: {
+            ...prev[bookingId],
+            payment_status: newStatus,
+          },
+        };
+      });
+
+      messageApi.success("Төлбөрийн төлөв амжилттай шинэчлэгдлээ");
+    } catch (err) {
+      console.error(err);
+      messageApi.error("Төлбөрийн төлөв шинэчлэхэд алдаа гарлаа");
+    } finally {
+      setUpdatingPaymentId(null);
     }
   };
 
@@ -179,9 +233,37 @@ const Page = () => {
       title: "Төлбөрийн төлөв",
       dataIndex: "payment_status",
       key: "payment_status",
-      render: (value) => (
-        <Tag color={paymentStatusColorMap[value] || "default"}>{value}</Tag>
-      ),
+      render: (value, record) => {
+        const selectValue = editablePaymentStatuses.includes(value)
+          ? value
+          : undefined;
+
+        return (
+          // ⬇️ ЭНЭ wrapper div-ийг нэмж өгнө
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Select
+              size="small"
+              value={selectValue}
+              placeholder={value || "Сонгох"}
+              style={{ minWidth: 100 }}
+              onChange={(v) => handlePaymentStatusChange(record.id, v)}
+              loading={updatingPaymentId === record.id}
+              disabled={updatingPaymentId === record.id}
+            >
+              {editablePaymentStatuses.map((key) => (
+                <Option key={key} value={key}>
+                  <Tag color={paymentStatusColorMap[key] || "default"}>
+                    {key}
+                  </Tag>
+                </Option>
+              ))}
+            </Select>
+          </div>
+        );
+      },
     },
     {
       title: "Үүсгэсэн",
@@ -191,16 +273,13 @@ const Page = () => {
     },
   ];
 
-  // өргөтгөсөн мөр дотор харагдах UI
   const renderExpandedRow = (record) => {
     const detail = details[record.id];
 
-    // ачаалж байхад
     if (detailLoadingId === record.id && !detail) {
       return <div className="py-4">Дэлгэрэнгүй мэдээлэл ачаалж байна...</div>;
     }
 
-    // detail байхгүй, алдаа гарсан эсвэл хараахан аваагүй байвал
     if (!detail) {
       return (
         <div className="py-4 text-gray-500">
@@ -209,7 +288,6 @@ const Page = () => {
       );
     }
 
-    // rooms жижиг хүснэгт
     const roomColumns = [
       {
         title: "Room ID",
@@ -288,7 +366,7 @@ const Page = () => {
                 </Tag>
               </div>
               <div>
-                <span className="font-medium">Төлбөрийн төлөв: </span>
+                <span className="font-medium ">Төлбөрийн төлөв: </span>
                 <Tag
                   color={
                     paymentStatusColorMap[detail.payment_status] || "default"
@@ -361,7 +439,6 @@ const Page = () => {
               expandedRowKeys,
               onExpand: async (expanded, record) => {
                 if (expanded) {
-                  // expand хийгдэж байвал дэлгэрэнгүйг дуудаж cache хийх
                   setExpandedRowKeys((prev) =>
                     prev.includes(record.id) ? prev : [...prev, record.id]
                   );
@@ -369,13 +446,12 @@ const Page = () => {
                     await fetchDetail(record.id);
                   }
                 } else {
-                  // collapse
                   setExpandedRowKeys((prev) =>
                     prev.filter((id) => id !== record.id)
                   );
                 }
               },
-              expandRowByClick: true, // мөрөн дээр дараад expand/collapse
+              expandRowByClick: true,
             }}
           />
         </Spin>
