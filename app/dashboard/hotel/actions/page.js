@@ -1,7 +1,8 @@
 'use client';
+
 // react
 import { useEffect, useState } from 'react';
-// next
+// next (APP ROUTER)
 import { useRouter, useSearchParams } from 'next/navigation';
 // antd
 import {
@@ -21,6 +22,78 @@ import { FILE_URL } from '@/utils/config';
 const { TextArea } = Input;
 const { Title } = Typography;
 const { Option } = Select;
+
+// ==== FIXED CONTACT VALUES (ӨӨРЧЛӨХ БОЛОМЖГҮЙ) ====
+const FIXED_PHONE = '89196371';
+const FIXED_EMAIL = 'info@etuga.mn';
+
+// AMENITY option-ууд
+const AMENITY_OPTIONS = [
+  {
+    value: 'smoke',
+    label: 'Smoke friendly',
+    mn: 'Тамхи татах боломжтой өрөө',
+    en: 'Smoking room available',
+  },
+  {
+    value: 'wifi',
+    label: 'Wi-Fi',
+    mn: 'Үнэгүй Wi-Fi',
+    en: 'Free Wi-Fi',
+  },
+  {
+    value: 'parking',
+    label: 'Parking',
+    mn: 'Үнэгүй зогсоол',
+    en: 'Free parking',
+  },
+  {
+    value: 'rooms',
+    label: 'Rooms',
+    mn: 'Гэр бүлийн  өрөө',
+    en: 'Family rooms',
+  },
+  {
+    value: 'hub',
+    label: 'hot-Hub',
+    mn: 'Нийтлэг амрах хэсэг',
+    en: 'Common lounge',
+  },
+  {
+    value: 'tv',
+    label: 'TV',
+    mn: 'ТВ, кино үзэх боломжтой',
+    en: 'TV available',
+  },
+  {
+    value: 'washingmachine',
+    label: 'Washing machine',
+    mn: 'Угаалгын машин',
+    en: 'Washing machine',
+  },
+  {
+    value: 'kitchen',
+    label: 'Kitchen',
+    mn: 'Гал тогоо ашиглах боломжтой',
+    en: 'Kitchen access',
+  },
+  {
+    value: 'airport',
+    label: 'Airport pickup',
+    mn: 'Нисэхийн трансфер',
+    en: 'Airport shuttle',
+  },
+  {
+    value: 'towels',
+    label: 'Towels',
+    mn: 'Алчуур, орны даавуу',
+    en: 'Towels & linens',
+  },
+];
+
+function getAmenityDefaults(value) {
+  return AMENITY_OPTIONS.find((opt) => opt.value === value) || {};
+}
 
 // --- API helper-ууд (/api → api.etuga.mn рүү rewrite хийгдэнэ) ---
 async function apiGet(path) {
@@ -71,8 +144,10 @@ async function apiPut(path, body) {
 
 const Page = () => {
   const searchParams = useSearchParams();
-  const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
+  const id = searchParams.get('id'); // /dashboard/hotel/actions?id=...
+
+  const [messageApi, contextHolder] = message.useMessage();
 
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -81,8 +156,6 @@ const Page = () => {
   const [files, setFiles] = useState([]);
   // map iframe src
   const [mapSrc, setMapSrc] = useState('');
-
-  const id = searchParams.get('id');
 
   // -----------------------------
   // MAP SRC үүсгэх function
@@ -108,7 +181,7 @@ const Page = () => {
   // -----------------------------
   useEffect(() => {
     if (id) {
-      onDetail();
+      onDetail(id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -116,17 +189,17 @@ const Page = () => {
   // -----------------------------
   // DETAIL АВАХ
   // -----------------------------
-  const onDetail = async () => {
+  const onDetail = async (hotelId) => {
     if (loading) return;
     setLoading(true);
 
-    const res = await apiGet(`admin/hotels/${id}`);
+    const res = await apiGet(`admin/hotels/${hotelId}`);
 
     if (res.status === 200 && res.data) {
       const cloned = JSON.parse(JSON.stringify(res.data));
 
       // -----------------------------
-      // AMENITIES parse (аюулгүй JS хувилбар)
+      // AMENITIES parse
       // -----------------------------
       if (!cloned?.AMENITIES) {
         cloned.AMENITIES = [];
@@ -165,7 +238,7 @@ const Page = () => {
         }
       }
 
-      // floors -> rooms (backend structure-аа дагана, хэрэггүй бол авч хаяж болно)
+      // floors -> rooms
       if (cloned?.floors?.length > 0) {
         cloned.rooms = cloned.floors;
       }
@@ -177,6 +250,10 @@ const Page = () => {
         }));
         setFiles(arr);
       }
+
+      // >>> CONTACT FIELDS ALWAYS FIXED
+      cloned.phone = FIXED_PHONE;
+      cloned.email = FIXED_EMAIL;
 
       form.setFieldsValue(cloned);
 
@@ -203,11 +280,20 @@ const Page = () => {
     let res = null;
     const cloned = JSON.parse(JSON.stringify(values));
 
+    // CONTACT талбаруудыг хамгаалж override хийж байна
+    cloned.phone = FIXED_PHONE;
+    cloned.email = FIXED_EMAIL;
+
     // AMENITIES-г backend structure руу
     if (cloned.AMENITIES) {
-      const arr = cloned.AMENITIES.map((el) => ({
-        [el.title]: { mn: el.mn, en: el.en },
-      }));
+      const arr = cloned.AMENITIES.map((el) => {
+        const defaults = getAmenityDefaults(el.title);
+        const mn = el.mn || defaults.mn || '';
+        const en = el.en || defaults.en || '';
+        return {
+          [el.title]: { mn, en },
+        };
+      });
       cloned.AMENITIES = arr;
     }
 
@@ -294,6 +380,10 @@ const Page = () => {
             onFinish={onFinish}
             autoComplete="off"
             className="w-full"
+            initialValues={{
+              phone: FIXED_PHONE,
+              email: FIXED_EMAIL,
+            }}
           >
             {/* ───────── Ерөнхий мэдээлэл ───────── */}
             <Title level={5}>Ерөнхий мэдээлэл</Title>
@@ -345,9 +435,7 @@ const Page = () => {
               <Form.Item
                 label="Өрөөний тоо"
                 name="bedrooms"
-                rules={[
-                  { required: true, message: 'Өрөөний тоо оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Өрөөний тоо оруулна уу!' }]}
               >
                 <InputNumber placeholder="Өрөөний тоо" className="w-full" />
               </Form.Item>
@@ -368,9 +456,7 @@ const Page = () => {
               <Form.Item
                 label="Үнэлгээ"
                 name="rating"
-                rules={[
-                  { required: true, message: 'Үнэлгээ оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Үнэлгээ оруулна уу!' }]}
               >
                 <InputNumber placeholder="Үнэлгээ" className="w-full" />
               </Form.Item>
@@ -384,23 +470,21 @@ const Page = () => {
                 name="phone"
                 rules={[{ required: true, message: 'Утас оруулна уу!' }]}
               >
-                <Input placeholder="Утас" />
+                <Input disabled />
               </Form.Item>
               <Form.Item
                 label="Имэйл"
                 name="email"
                 rules={[{ required: true, message: 'Имэйл оруулна уу!' }]}
               >
-                <Input placeholder="Имэйл" />
+                <Input disabled />
               </Form.Item>
               <Form.Item
-                label="Вэбсайт"
+                label="Вэбсайт / Линк"
                 name="website"
-                rules={[
-                  { required: true, message: 'Вэбсайт оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Вэбсайт линк оруулна уу!' }]}
               >
-                <Input placeholder="Вэбсайт" />
+                <Input placeholder="https://your-link.com эсвэл booking линк" />
               </Form.Item>
             </div>
 
@@ -409,18 +493,14 @@ const Page = () => {
               <Form.Item
                 label="Тайлбар (MN)"
                 name="description_mn"
-                rules={[
-                  { required: true, message: 'Тайлбар оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Тайлбар оруулна уу!' }]}
               >
                 <TextArea rows={4} placeholder="Тайлбар (MN)" />
               </Form.Item>
               <Form.Item
                 label="Тайлбар (EN)"
                 name="description_en"
-                rules={[
-                  { required: true, message: 'Тайлбар оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Тайлбар оруулна уу!' }]}
               >
                 <TextArea rows={4} placeholder="Тайлбар (EN)" />
               </Form.Item>
@@ -432,18 +512,14 @@ const Page = () => {
               <Form.Item
                 label="Байршил (MN)"
                 name="city_name"
-                rules={[
-                  { required: true, message: 'Байршил оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Байршил оруулна уу!' }]}
               >
                 <Input placeholder="Улаанбаатар, Төв аймаг гэх мэт" />
               </Form.Item>
               <Form.Item
                 label="Байршил (EN)"
                 name="city_name_en"
-                rules={[
-                  { required: true, message: 'Байршил оруулна уу!' },
-                ]}
+                rules={[{ required: true, message: 'Байршил оруулна уу!' }]}
               >
                 <Input placeholder="Ulaanbaatar, Tuv aimag etc." />
               </Form.Item>
@@ -540,6 +616,15 @@ const Page = () => {
                 <>
                   {fields.map((field, index) => {
                     const { key, name, ...restField } = field;
+                    // одоогийн AMENITIES value-ууд
+                    const amenities = form.getFieldValue('AMENITIES') || [];
+                    const current = amenities[name] || {};
+                    const currentTitle = current.title;
+
+                    const usedTitles = amenities
+                      .map((a) => a?.title)
+                      .filter(Boolean);
+
                     return (
                       <Form.Item
                         label={index === 0 ? 'Таатай байдал' : ''}
@@ -547,33 +632,76 @@ const Page = () => {
                         key={key}
                       >
                         <div className="flex justify-between items-center gap-x-[20px] bg-[#dfe6e9] rounded-[12px] shadow-2xl p-[20px]">
+                          {/* TITLE → Select (заавал) */}
                           <Form.Item
                             {...restField}
                             name={[name, 'title']}
                             rules={[{ required: true, message: '' }]}
                             noStyle
                           >
-                            <Input placeholder="Таатай байдал гарчиг" />
+                            <Select
+                              placeholder="Таатай байдлын төрөл"
+                              style={{ width: 180 }}
+                              onChange={(val) => {
+                                const defaults = getAmenityDefaults(val);
+                                const currentAmenities =
+                                  form.getFieldValue('AMENITIES') || [];
+                                const prev = currentAmenities[name] || {};
+
+                                const updated = {
+                                  ...prev,
+                                  title: val,
+                                  mn: defaults.mn,
+                                  en: defaults.en,
+                                };
+
+                                const newAmenities = [...currentAmenities];
+                                newAmenities[name] = updated;
+                                form.setFieldsValue({
+                                  AMENITIES: newAmenities,
+                                });
+                              }}
+                            >
+                              {AMENITY_OPTIONS.filter(
+                                (opt) =>
+                                  !usedTitles.includes(opt.value) ||
+                                  opt.value === currentTitle,
+                              ).map((opt) => (
+                                <Option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </Option>
+                              ))}
+                            </Select>
                           </Form.Item>
+
+                          {/* MN → автоматаар бөглөгдөнө, зөвхөн уншина */}
                           <Form.Item
                             {...restField}
                             name={[name, 'mn']}
-                            rules={[{ required: true, message: '' }]}
                             noStyle
                           >
-                            <Input placeholder="MN" />
+                            <Input
+                              style={{ width: 220 }}
+                              placeholder="MN"
+                              disabled
+                            />
                           </Form.Item>
+
+                          {/* EN → автоматаар бөглөгдөнө, зөвхөн уншина */}
                           <Form.Item
                             {...restField}
                             name={[name, 'en']}
-                            rules={[{ required: true, message: '' }]}
                             noStyle
                           >
-                            <Input placeholder="EN" />
+                            <Input
+                              style={{ width: 220 }}
+                              placeholder="EN"
+                              disabled
+                            />
                           </Form.Item>
 
                           <MinusCircleOutlined
-                            className="dynamic-delete-button"
+                            className="dynamic-delete-button cursor-pointer"
                             onClick={() => remove(name)}
                           />
                         </div>
@@ -736,8 +864,7 @@ const Page = () => {
                                         rules={[
                                           {
                                             required: true,
-                                            message:
-                                              'Хөнгөлөлтийн хувь оруулна уу',
+                                            message: 'Хөнгөлөлтийн хувь оруулна уу',
                                           },
                                         ]}
                                       >
