@@ -756,12 +756,12 @@ const Page = () => {
                           </div>
 
                           {/* Тоон үзүүлэлт */}
-                          <div className="grid grid-cols-4 gap-x-[20px] my-[20px]">
+                          <div className="grid grid-cols-5 gap-x-[20px] my-[20px]">
                             <Form.Item
                               {...restField}
                               name={[name, 'floor']}
                               rules={[{ required: true, message: '' }]}
-                              label="Давхарын тоо"
+                              label="Давхар"
                               className="w-full"
                             >
                               <InputNumber
@@ -769,18 +769,33 @@ const Page = () => {
                                 className="w-full"
                               />
                             </Form.Item>
+
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'room']}
+                              rules={[{ required: true, message: '' }]}
+                              label="Өрөө"
+                              className="w-full"
+                            >
+                              <InputNumber
+                                placeholder="Өрөөний №"
+                                className="w-full"
+                              />
+                            </Form.Item>
+
                             <Form.Item
                               {...restField}
                               name={[name, 'capacity']}
                               rules={[{ required: true, message: '' }]}
-                              label="Багтаамж хүний тоо"
+                              label="Багтаамж (хүн)"
                               className="w-full"
                             >
                               <InputNumber
-                                placeholder="Багтаамж хүний тоо"
+                                placeholder="Хүн"
                                 className="w-full"
                               />
                             </Form.Item>
+
                             <Form.Item
                               {...restField}
                               name={[name, 'beds']}
@@ -793,19 +808,21 @@ const Page = () => {
                                 className="w-full"
                               />
                             </Form.Item>
+
                             <Form.Item
                               {...restField}
                               name={[name, 'areaM2']}
                               rules={[{ required: true, message: '' }]}
-                              label="Нийт хэмжээ мк"
+                              label="Нийт хэмжээ м²"
                               className="w-full"
                             >
                               <InputNumber
-                                placeholder="Нийт хэмжээ"
+                                placeholder="м²"
                                 className="w-full"
                               />
                             </Form.Item>
                           </div>
+
 
                           {/* Үнэ */}
                           <div className="flex justify-between items-center gap-x-[20px] my-[20px]">
