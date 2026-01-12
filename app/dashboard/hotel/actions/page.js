@@ -243,6 +243,9 @@ const Page = () => {
         cloned.rooms = cloned.floors;
       }
 
+      // ✅ safety: rooms байхгүй бол array болгох
+      if (!Array.isArray(cloned.rooms)) cloned.rooms = [];
+
       // images (server-ээс ирсэн path preview)
       if (cloned.images?.length > 0) {
         const arr = cloned.images.map((el) => ({
@@ -675,11 +678,7 @@ const Page = () => {
                           </Form.Item>
 
                           {/* MN → автоматаар бөглөгдөнө, зөвхөн уншина */}
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'mn']}
-                            noStyle
-                          >
+                          <Form.Item {...restField} name={[name, 'mn']} noStyle>
                             <Input
                               style={{ width: 220 }}
                               placeholder="MN"
@@ -688,11 +687,7 @@ const Page = () => {
                           </Form.Item>
 
                           {/* EN → автоматаар бөглөгдөнө, зөвхөн уншина */}
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'en']}
-                            noStyle
-                          >
+                          <Form.Item {...restField} name={[name, 'en']} noStyle>
                             <Input
                               style={{ width: 220 }}
                               placeholder="EN"
@@ -756,7 +751,7 @@ const Page = () => {
                           </div>
 
                           {/* Тоон үзүүлэлт */}
-                          <div className="grid grid-cols-5 gap-x-[20px] my-[20px]">
+                          <div className="grid grid-cols-6 gap-x-[20px] my-[20px]">
                             <Form.Item
                               {...restField}
                               name={[name, 'floor']}
@@ -790,10 +785,7 @@ const Page = () => {
                               label="Багтаамж (хүн)"
                               className="w-full"
                             >
-                              <InputNumber
-                                placeholder="Хүн"
-                                className="w-full"
-                              />
+                              <InputNumber placeholder="Хүн" className="w-full" />
                             </Form.Item>
 
                             <Form.Item
@@ -816,13 +808,26 @@ const Page = () => {
                               label="Нийт хэмжээ м²"
                               className="w-full"
                             >
+                              <InputNumber placeholder="м²" className="w-full" />
+                            </Form.Item>
+
+                            {/* ✅ NEW: roomCount */}
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'roomCount']}
+                              rules={[
+                                { required: true, message: 'Өрөөний тоо оруулна уу' },
+                              ]}
+                              label="Өрөөний тоо (availability)"
+                              className="w-full"
+                            >
                               <InputNumber
-                                placeholder="м²"
+                                placeholder="Жишээ: 2"
                                 className="w-full"
+                                min={0}
                               />
                             </Form.Item>
                           </div>
-
 
                           {/* Үнэ */}
                           <div className="flex justify-between items-center gap-x-[20px] my-[20px]">
@@ -848,7 +853,8 @@ const Page = () => {
                                   Хөнгөлөлтийн мэдээлэл
                                 </div>
                                 {discountFields.map((dField) => {
-                                  const { key: dKey, name: dName, ...restDiscountField } = dField;
+                                  const { key: dKey, name: dName, ...restDiscountField } =
+                                    dField;
 
                                   return (
                                     <div
@@ -912,13 +918,12 @@ const Page = () => {
                             )}
                           </Form.List>
 
-                          {/* Товч танилцуулга */}
+                          {/* Товч танилцуулга (✅ required биш) */}
                           <div className="flex justify-between items-center gap-x-[20px] mt-[10px]">
                             <Form.Item
                               {...restField}
                               name={[name, 'blurb', 'mn']}
-                              rules={[{ required: true, message: '' }]}
-                              label="Товч танилцуулга MN"
+                              label="Товч танилцуулга MN (заавал биш)"
                               className="w-full"
                             >
                               <Input placeholder="Товч танилцуулга MN" />
@@ -926,8 +931,7 @@ const Page = () => {
                             <Form.Item
                               {...restField}
                               name={[name, 'blurb', 'en']}
-                              rules={[{ required: true, message: '' }]}
-                              label="Товч танилцуулга EN"
+                              label="Товч танилцуулга EN (optional)"
                               className="w-full"
                             >
                               <Input placeholder="Товч танилцуулга EN" />
@@ -987,6 +991,7 @@ const Page = () => {
                       className="w-full h-[150px] object-cover"
                     />
                     <button
+                      type="button"
                       onClick={() => onDeleteFile(index)}
                       className="absolute top-2 right-2 bg-white/90 hover:bg-red-500 hover:text-white transition-all text-xs px-3 py-1 rounded-full shadow"
                     >
