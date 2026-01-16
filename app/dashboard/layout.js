@@ -3,17 +3,16 @@
 import React, { useMemo, useState, useContext } from "react";
 // next
 import { usePathname, useRouter } from "next/navigation";
+import { DashboardIcon, HotelIcon, BookingIcon } from "@/components/icons";
 // antd
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  FieldNumberOutlined,
-  OrderedListOutlined,
-  BarChartOutlined,
+
   LogoutOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, theme } from "antd";
-
+import { ConfigProvider } from "antd";
 // utils
 import { removeCookie } from "@/context/auth/utils";
 // context
@@ -68,17 +67,25 @@ const RootLayout = ({ children }) => {
   }, [pathname]);
 
   const menuItems = [
-    { key: "/dashboard", icon: <BarChartOutlined />, label: "Dashboard" },
-    { key: "/dashboard/hotel", icon: <OrderedListOutlined />, label: "Буудал" },
+    {
+      key: "/dashboard",
+      icon: <DashboardIcon />,
+      label: "Dashboard",
+    },
+    {
+      key: "/dashboard/hotel",
+      icon: <HotelIcon />,
+      label: "Буудал",
+    },
     {
       key: "/dashboard/booking",
-      icon: <FieldNumberOutlined />,
+      icon: <BookingIcon />,
       label: "Захиалга",
     },
   ];
 
   return (
-    <Layout className="min-h-screen bg-zinc-50 ">
+    <Layout className="min-h-screen bg-zinc-50">
       <Sider
         trigger={null}
         collapsible
@@ -87,15 +94,14 @@ const RootLayout = ({ children }) => {
         theme="light"
         style={{
           background: "#fff",
-         
+
           borderRight: "1px solid rgba(0,0,0,0.06)",
         }}
       >
         {/* Logo */}
         <div
-          className={`px-4 py-4 ${
-            collapsed ? "flex justify-center" : "flex items-center gap-3"
-          }`}
+          className={`px-4 py-4 ${collapsed ? "flex justify-center" : "flex items-center gap-3"
+            }`}
         >
           <img
             src="/logo.png"
@@ -115,25 +121,49 @@ const RootLayout = ({ children }) => {
         </div>
 
         {/* Menu */}
-        <div className="px-2 top-10 sticky ">
-          <Menu
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            onClick={(e) => router.push(e.key)}
-            items={menuItems}
-            style={{
-              background: "transparent",
-              border: "none",
+        <div className="px-2">
+          <ConfigProvider
+            theme={{
+              components: {
+                Menu: {
+                  itemBorderRadius: 14,
+                  itemHeight: 46,
+
+                  itemSelectedBg: "#16a34a",
+                  itemSelectedColor: "#ffffff",
+
+                  itemHoverBg: "rgba(22, 163, 74, 0.10)",
+                  itemHoverColor: "#0f172a",
+
+                  itemActiveBg: "rgba(22, 163, 74, 0.16)",
+
+                  // submenu bg (хэрвээ цааш нэмэх бол)
+                  subMenuItemBg: "transparent",
+                },
+              },
             }}
-          />
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={[selectedKey]}
+              onClick={(e) => router.push(e.key)}
+              items={menuItems}
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 16,
+              }}
+              className="etuga-menu"
+            />
+          </ConfigProvider>
         </div>
+
 
         {/* Footer */}
         <div className="absolute bottom-3 left-0 right-0 px-3">
           <div
-            className={`rounded-xl border border-black/5 bg-zinc-50 px-3 py-2 text-zinc-500 ${
-              collapsed ? "text-center text-[11px]" : "text-[12px]"
-            }`}
+            className={`rounded-xl border border-black/5 bg-zinc-50 px-3 py-2 text-zinc-500 ${collapsed ? "text-center text-[11px]" : "text-[12px]"
+              }`}
           >
             {collapsed ? "v1" : "Etuga Platform • v1"}
           </div>

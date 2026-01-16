@@ -28,7 +28,7 @@ import {
   MailOutlined,
   PhoneOutlined,
 } from "@ant-design/icons";
-
+import { HotelIcon } from "@/components/icons";
 const { Title, Text } = Typography;
 
 async function apiRequest(path, options = {}) {
@@ -137,7 +137,9 @@ const Page = () => {
       render: (text, record) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-500 to-lime-400 shadow-sm" />
+           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 mr-5 p-1  text-emerald-700 shadow-sm">
+  <HotelIcon />
+</div>
             <div className="flex flex-col">
               <Text className="text-[14px] font-semibold text-zinc-900">
                 {text || "—"}
@@ -301,7 +303,7 @@ const Page = () => {
           <div className="mb-5 rounded-3xl border border-emerald-100 bg-white/70 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
             <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-lime-500 shadow-sm" />
+              
                 <div>
                   <Title level={3} style={{ margin: 0 }}>
                     Буудлын жагсаалт
@@ -334,10 +336,10 @@ const Page = () => {
                 </Button>
 
                 <Button
-                  type="primary"
+                type="solid"
                   icon={<PlusOutlined />}
                   size="large"
-                  className="rounded-full px-5 bg-emerald-600 hover:!bg-emerald-700"
+                  className="rounded-full px-5 bg-green-800"
                   onClick={() => router.push("/dashboard/hotel/actions")}
                 >
                   Нэмэх
@@ -373,7 +375,7 @@ const Page = () => {
                 dataSource={filtered}
                 rowKey="id"
                 pagination={{ pageSize: 10, showSizeChanger: true }}
-                className="rounded-3xl"
+                className="rounded-3xl mr-10"
                 onRow={(record) => ({
                   onClick: () =>
                     router.push(`/dashboard/hotel/actions?id=${record.id}`),
