@@ -137,9 +137,9 @@ const Page = () => {
       render: (text, record) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 mr-5 p-1  text-emerald-700 shadow-sm">
-  <HotelIcon />
-</div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 mr-5 p-1  text-emerald-700 shadow-sm">
+              <HotelIcon />
+            </div>
             <div className="flex flex-col">
               <Text className="text-[14px] font-semibold text-zinc-900">
                 {text || "—"}
@@ -303,13 +303,13 @@ const Page = () => {
           <div className="mb-5 rounded-3xl border border-emerald-100 bg-white/70 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
             <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-              
+
                 <div>
                   <Title level={3} style={{ margin: 0 }}>
                     Буудлын жагсаалт
                   </Title>
                   <Text className="text-zinc-500 text-[13px]">
-                    Удирдлагын хэсэг 
+                    Удирдлагын хэсэг
                   </Text>
                 </div>
               </div>
@@ -336,7 +336,7 @@ const Page = () => {
                 </Button>
 
                 <Button
-                type="solid"
+                  type="solid"
                   icon={<PlusOutlined />}
                   size="large"
                   className="rounded-full px-5 bg-green-800"
@@ -362,7 +362,7 @@ const Page = () => {
                     {filtered?.length ?? 0}
                   </div>
                 </div>
-             
+
               </div>
             </div>
           </div>
