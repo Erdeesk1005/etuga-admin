@@ -175,7 +175,7 @@ const RootLayout = ({ children }) => {
           style={{ padding: 0, background: "transparent" }}
           className="px-3 sm:px-5 pt-3"
         >
-          <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white shadow-sm px-2 sm:px-3 h-[60px]">
+          <div className="flex  m-5 items-center justify-between rounded-2xl border border-black/5 bg-white shadow-sm px-2 sm:px-3 h-[60px]">
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}

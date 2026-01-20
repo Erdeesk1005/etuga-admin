@@ -137,8 +137,10 @@ const Page = () => {
       render: (text, record) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 mr-5 p-1  text-emerald-700 shadow-sm">
-              <HotelIcon />
+            <div className="flex h-9 w-9 items-center ml-2 justify-center rounded-xl bg-emerald-100 mr-5 p-1  text-emerald-700 shadow-sm">
+            <div className="ml-2">
+                <HotelIcon  />
+            </div>
             </div>
             <div className="flex flex-col">
               <Text className="text-[14px] font-semibold text-zinc-900">
@@ -207,44 +209,46 @@ const Page = () => {
         </div>
       ),
     },
-    {
-      title: "Төрөл / Tag",
-      key: "amenities",
-      dataIndex: "amenities",
-      render: (list, record) => (
-        <div className="flex flex-wrap gap-2">
-          {(list || []).length ? (
-            list.slice(0, 6).map((tag, idx) => (
-              <Tag
-                key={`${record.id}-${idx}`}
-                color={tagColor(tag)}
-                style={{
-                  borderRadius: 999,
-                  padding: "2px 10px",
-                  fontSize: 12,
-                  lineHeight: "18px",
-                }}
-              >
-                {String(tag).toUpperCase()}
-              </Tag>
-            ))
-          ) : (
-            <Text className="text-zinc-400 text-[13px]">—</Text>
-          )}
-          {(list || []).length > 6 ? (
-            <Tag
-              style={{
-                borderRadius: 999,
-                padding: "2px 10px",
-                fontSize: 12,
-              }}
-            >
-              +{list.length - 6}
-            </Tag>
-          ) : null}
-        </div>
-      ),
-    },
+  {
+  title: "Төрөл / Tag",
+  key: "type_tags",
+  render: (_, record) => {
+    const type = String(record?.type ?? "").trim();
+    const list = record?.amenities ?? [];
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {type ? (
+          <Tag
+            color={tagColor(type)}
+            style={{ borderRadius: 999, padding: "2px 10px", fontSize: 12 }}
+          >
+            {type.toUpperCase()}
+          </Tag>
+        ) : (
+          <Text className="text-zinc-400 text-[13px]">—</Text>
+        )}
+
+        {(list || []).slice(0, 5).map((tag, idx) => (
+          <Tag
+            key={`${record.id}-mix-${idx}`}
+            color={tagColor(tag)}
+            style={{ borderRadius: 999, padding: "2px 10px", fontSize: 12 }}
+          >
+            {String(tag).toUpperCase()}
+          </Tag>
+        ))}
+
+        {(list || []).length > 5 ? (
+          <Tag style={{ borderRadius: 999, padding: "2px 10px", fontSize: 12 }}>
+            +{list.length - 5}
+          </Tag>
+        ) : null}
+      </div>
+    );
+  },
+},
+
     {
       title: "Үйлдэл",
       key: "action",
